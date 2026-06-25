@@ -1,0 +1,3 @@
+<resources>
+    <string name="accessibility_service_description">Totap uses accessibility to perform automatic taps, swipes, and long-presses at the positions you choose. It does not read your screen content or personal data.</string>
+</resources>
