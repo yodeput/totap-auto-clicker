@@ -19,3 +19,9 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    // Domain is pure Kotlin: NO Android dependencies allowed in model/planner code.
+    // Unit tests run on the JVM (fast, no device).
+    testImplementation(libs.junit)
+}
