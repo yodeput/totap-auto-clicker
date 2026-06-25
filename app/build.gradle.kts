@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,16 +20,18 @@ android {
         versionName = "0.1.0"
 
         // Appwrite config injected from local.properties / CI env (never hardcoded in source)
-        val props = rootProject.file("local.properties")
-            .takeIf { it.exists() }
-            ?.let { java.util.Properties().apply { it.inputStream().use { s -> load(s) } } }
+        val localProps = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localPropsFile.inputStream().use { localProps.load(it) }
+        }
 
         buildConfigField("String", "APPWRITE_PROJECT_ID",
-            "\"${props?.getProperty("APPWRITE_PROJECT_ID") ?: ""}\"")
+            "\"${localProps.getProperty("APPWRITE_PROJECT_ID") ?: ""}\"")
         buildConfigField("String", "APPWRITE_PROJECT_NAME",
-            "\"${props?.getProperty("APPWRITE_PROJECT_NAME") ?: ""}\"")
+            "\"${localProps.getProperty("APPWRITE_PROJECT_NAME") ?: ""}\"")
         buildConfigField("String", "APPWRITE_PUBLIC_ENDPOINT",
-            "\"${props?.getProperty("APPWRITE_PUBLIC_ENDPOINT") ?: ""}\"")
+            "\"${localProps.getProperty("APPWRITE_PUBLIC_ENDPOINT") ?: ""}\"")
     }
 
     buildTypes {
@@ -37,10 +41,10 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProGuardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // R8 obfuscation is enabled (per spec §8.7). The complete keep-rule set
+            // and AGP's default ProGuard file are wired in during Phase 8 when
+            // release builds first ship; for Phase 1 only the debug build is needed.
+            proguardFiles("proguard-rules.pro")
         }
     }
 
