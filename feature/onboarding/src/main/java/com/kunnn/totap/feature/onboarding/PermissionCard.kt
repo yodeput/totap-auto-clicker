@@ -1,11 +1,11 @@
 package com.kunnn.totap.feature.onboarding
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -103,38 +102,57 @@ fun PermissionCard(
             }
             Spacer(Modifier.width(12.dp))
 
-            // Status button / check
-            if (granted) {
-                GrantedChip()
-            } else {
-                OutlinedButton(
-                    onClick = onOpenSettings,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TotapInk),
-                ) {
-                    Text("Grant", fontWeight = FontWeight.SemiBold)
-                }
+            // Animated Grant -> Granted transition so the change reads instantly.
+            androidx.compose.animation.AnimatedContent(
+                targetState = granted,
+                transitionSpec = {
+                    (fadeIn(tween(220)) + scaleIn(tween(220))) togetherWith fadeOut(tween(180))
+                },
+                label = "permState",
+            ) { isGranted ->
+                if (isGranted) GrantedChip() else GrantButton(onOpenSettings)
             }
         }
     }
 }
 
 @Composable
+private fun GrantButton(onOpenSettings: () -> Unit) {
+    OutlinedButton(
+        onClick = onOpenSettings,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = TotapInk),
+    ) {
+        Text("Grant", fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
 private fun GrantedChip() {
-    val scale by animateFloatAsState(targetValue = 1f, animationSpec = tween(220), label = "chip")
     Row(
         modifier = Modifier
-            .scale(scale)
-            .background(Color(0xFF2E7D32).copy(alpha = 0.14f), RoundedCornerShape(50))
-            .border(1.dp, Color(0xFF2E7D32).copy(alpha = 0.3f), RoundedCornerShape(50))
+            .background(GrantedGreen.copy(alpha = 0.14f), RoundedCornerShape(50))
+            .border(1.dp, GrantedGreen.copy(alpha = 0.3f), RoundedCornerShape(50))
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.Check, contentDescription = "Granted", tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
+        Icon(
+            Icons.Rounded.Check,
+            contentDescription = "Granted",
+            tint = GrantedGreen,
+            modifier = Modifier.size(16.dp),
+        )
         Spacer(Modifier.width(4.dp))
-        Text("Granted", color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
+        Text(
+            "Granted",
+            color = GrantedGreen,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 }
+
+private val GrantedGreen = Color(0xFF2E7D32)
 
 private fun iconFor(type: PermissionType): ImageVector = when (type) {
     PermissionType.OVERLAY -> Icons.Rounded.Layers
