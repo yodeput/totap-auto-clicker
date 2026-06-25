@@ -39,7 +39,9 @@ class GesturePlanner(private val random: Random = Random.Default) {
                 val interval = target.intervalMs
                 var t = 0L
                 var count = 0
-                while (shouldContinue(session, target.repeat, count)) {
+                while (shouldContinue(session, target.repeat, count) &&
+                    shouldContinueGlobal(session, count)
+                ) {
                     yield(buildGesture(t, target, session))
                     t += interval
                     count++
