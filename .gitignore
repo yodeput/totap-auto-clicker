@@ -1,0 +1,32 @@
+# Secrets & local config (never commit)
+local.properties
+*.keystore
+*.jks
+release.keystore
+keystore/
+*.keystore.properties
+signing.properties
+google-services.json
+secrets.*
+*.secret
+
+# Android build outputs
+build/
+.gradle/
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.cxx/
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+local/
+
+# Kotlin / Java
+*.class
+hs_err_pid*
+replay_pid*

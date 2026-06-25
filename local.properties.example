@@ -1,0 +1,16 @@
+# Copy this file to local.properties and fill in real values.
+# local.properties is gitignored and NEVER committed.
+
+# Required to locate the Android SDK:
+sdk.dir=/path/to/Android/sdk
+
+# Appwrite config (injected into BuildConfig at build time):
+APPWRITE_PROJECT_ID=
+APPWRITE_PROJECT_NAME=
+APPWRITE_PUBLIC_ENDPOINT=
+
+# Optional release signing (for local release builds; CI uses GitHub secrets):
+# SIGNING_KEYSTORE_PATH=
+# SIGNING_KEY_ALIAS=
+# SIGNING_KEY_PASSWORD=
+# SIGNING_STORE_PASSWORD=
