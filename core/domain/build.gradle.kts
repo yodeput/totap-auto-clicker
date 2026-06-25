@@ -23,5 +23,6 @@ android {
 dependencies {
     // Domain is pure Kotlin: NO Android dependencies allowed in model/planner code.
     // Unit tests run on the JVM (fast, no device).
+    implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit)
 }
