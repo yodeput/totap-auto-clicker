@@ -1,8 +1,11 @@
 name: CI
 
+# Debug-build smoke check for day-to-day pushes and PRs.
+# Release builds are handled by release.yml (tag-triggered only).
 on:
   push:
     branches: [ main ]
+    tags-ignore: [ 'v*' ]   # don't double-run on version tags
   pull_request:
     branches: [ main ]
 
@@ -21,7 +24,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Inject Appwrite config
+      - name: Inject Appwrite config 
         run: |
           cat > local.properties <<EOF
           sdk.dir=$ANDROID_SDK_ROOT

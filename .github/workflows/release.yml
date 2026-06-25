@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # only when a version tag like v1.0.0 is pushed
+
+  workflow_dispatch:   # manual ad-hoc release from the Actions UI
+
+permissions:
+  contents: write      # required to create the GitHub Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history + tags for version derivation
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Decode signing keystore
+        run: |
+          mkdir -p keystore
+          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > keystore/totap-release.jks
+          test -s keystore/totap-release.jks || { echo "keystore empty — SIGNING_KEYSTORE_BASE64 secret missing"; exit 1; }
+
+      - name: Write local.properties (Appwrite + signing)
+        env:
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        run: |
+          cat > local.properties <<EOF
+          sdk.dir=$ANDROID_SDK_ROOT
+          APPWRITE_PROJECT_ID=${{ secrets.APPWRITE_PROJECT_ID }}
+          APPWRITE_PROJECT_NAME=${{ secrets.APPWRITE_PROJECT_NAME }}
+          APPWRITE_PUBLIC_ENDPOINT=${{ secrets.APPWRITE_PUBLIC_ENDPOINT }}
+          SIGNING_KEYSTORE_PATH=keystore/totap-release.jks
+          SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS
+          SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD
+          SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD
+          EOF
+
+      - name: Verify tag is a valid version
+        run: |
+          TAG="${GITHUB_REF##*/}"          # e.g. v1.2.3
+          echo "Tag: $TAG"
+          CORE="${TAG#v}"
+          if ! echo "$CORE" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "ERROR: tag '$TAG' is not a valid version (expected vMAJOR.MINOR.PATCH[-suffix])"
+            exit 1
+          fi
+          echo "version=$CORE" >> "$GITHUB_ENV"
+
+      - name: Assemble release (per-ABI + universal)
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APKs are signed
+        run: |
+          for apk in app/build/outputs/apk/release/*.apk; do
+            echo "=== $apk ==="
+            $ANDROID_SDK_ROOT/build-tools/*/apksigner verify --print-certs "$apk" \
+              || { echo "APK not signed: $apk"; exit 1; }
+          done
+
+      - name: Stage artifacts with namespaced names
+        id: stage
+        run: |
+          mkdir -p artifacts
+          V="${{ env.version }}"
+          for apk in app/build/outputs/apk/release/*.apk; do
+            base=$(basename "$apk")
+            # app-arm64-v8a-release.apk -> totap-1.0.0-arm64-v8a.apk
+            abi=$(echo "$base" | sed -nE 's/.*-(arm64-v8a|armeabi-v7a|x86_64)-release\.apk/\1/p')
+            if [ -z "$abi" ]; then
+              out="artifacts/totap-$V-universal.apk"
+            else
+              out="artifacts/totap-$V-$abi.apk"
+            fi
+            cp "$apk" "$out"
+          done
+          ls -lh artifacts/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: totap-${{ env.version }}-apks
+          path: artifacts/*.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Totap ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: artifacts/*.apk

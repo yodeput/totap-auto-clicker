@@ -10,7 +10,7 @@ APPWRITE_PROJECT_NAME=
 APPWRITE_PUBLIC_ENDPOINT=
 
 # Optional release signing (for local release builds; CI uses GitHub secrets):
-# SIGNING_KEYSTORE_PATH=
-# SIGNING_KEY_ALIAS=
+# SIGNING_KEYSTORE_PATH=keystore/totap-release.jks
+# SIGNING_KEY_ALIAS=totap
 # SIGNING_KEY_PASSWORD=
 # SIGNING_STORE_PASSWORD=
