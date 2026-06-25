@@ -55,4 +55,57 @@ class GesturePlannerTest {
         val tap = g.gesture as Gesture.Tap
         assertEquals(0L, tap.durationMs)
     }
+
+    // ---- MULTI mode ----------------------------------------------------------
+
+    @Test
+    fun `MULTI mode fires targets round-robin`() {
+        val t1 = Target(id = "t1", x = 10f, y = 10f, intervalMs = 100L)
+        val t2 = Target(id = "t2", x = 20f, y = 20f, intervalMs = 100L)
+        val session = ClickSession(ClickConfig(ClickMode.MULTI, listOf(t1, t2)))
+
+        val xs = planner().plan(session).take(4).toList().map { (it.gesture as Gesture.Tap).x }
+
+        // t1, t2, t1, t2 ...
+        assertEquals(listOf(10f, 20f, 10f, 20f), xs)
+    }
+
+    @Test
+    fun `MULTI mode waits each targets interval before its fire`() {
+        // t1 waits 100ms, t2 waits 30ms. Cumulative: t1@100, t2@130, t1@230, t2@260.
+        val t1 = Target(id = "t1", x = 10f, y = 10f, intervalMs = 100L)
+        val t2 = Target(id = "t2", x = 20f, y = 20f, intervalMs = 30L)
+        val session = ClickSession(ClickConfig(ClickMode.MULTI, listOf(t1, t2)))
+
+        val times = planner().plan(session).take(4).toList().map { it.fireAtMs }
+
+        assertEquals(listOf(100L, 130L, 230L, 260L), times)
+    }
+
+    // ---- SYNC mode -----------------------------------------------------------
+
+    @Test
+    fun `SYNC mode fires all targets at the same instant per cycle`() {
+        val t1 = Target(id = "t1", x = 10f, y = 10f, intervalMs = 100L)
+        val t2 = Target(id = "t2", x = 20f, y = 20f, intervalMs = 200L)
+        val session = ClickSession(ClickConfig(ClickMode.SYNC, listOf(t1, t2)))
+
+        val cycle0 = planner().plan(session).take(2).toList()
+
+        // Both fire at t=0 in the first cycle.
+        assertEquals(0L, cycle0[0].fireAtMs)
+        assertEquals(0L, cycle0[1].fireAtMs)
+    }
+
+    @Test
+    fun `SYNC mode cycle advances by the longest interval`() {
+        val t1 = Target(id = "t1", x = 10f, y = 10f, intervalMs = 100L)
+        val t2 = Target(id = "t2", x = 20f, y = 20f, intervalMs = 200L)
+        val session = ClickSession(ClickConfig(ClickMode.SYNC, listOf(t1, t2)))
+
+        val times = planner().plan(session).take(4).toList().map { it.fireAtMs }
+
+        // cycle0: both @ 0; cycle1: both @ 200 (max interval).
+        assertEquals(listOf(0L, 0L, 200L, 200L), times)
+    }
 }
