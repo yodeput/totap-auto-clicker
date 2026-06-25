@@ -125,8 +125,11 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:domain"))
     implementation(project(":core:ui"))
+    implementation(project(":core:autoclick"))
     implementation(project(":feature:home"))
+    implementation(project(":feature:onboarding"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
